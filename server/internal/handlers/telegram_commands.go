@@ -57,6 +57,16 @@ func handleCommand(state *app.State, mon *monitor.Monitor, chatID interface{}, m
 		reply = speedText(state)
 	case "pauseall":
 		reply = pauseAllText(state)
+	case "hz_status":
+		reply = hzStatusText(state)
+	case "hz_list":
+		reply = hzListText(state)
+	case "hz_traffic":
+		reply = hzTrafficText(state, args)
+	case "hz_snapshots":
+		reply = hzSnapshotsText(state)
+	case "hz_rebuild":
+		reply = hzRebuildText(state, args)
 	case "status", "s":
 		reply = statusText(state, mon)
 	case "queue", "q":
@@ -162,6 +172,12 @@ func helpText() string {
 	b.WriteString("  /subs     在盯哪些型号（可暂停/恢复/删除）\n")
 	b.WriteString("  /accounts 看/切当前下单账户\n")
 	b.WriteString("  /recent   最近的抢购结果（未付款订单带订单页链接）\n\n")
+	b.WriteString("【Hetzner】\n")
+	b.WriteString("  /hz_status              Hetzner 状态（服务器数/超阈值/SAFE_MODE）\n")
+	b.WriteString("  /hz_list                Hetzner 服务器列表与流量\n")
+	b.WriteString("  /hz_traffic <ID>        一台服务器的流量详情\n")
+	b.WriteString("  /hz_snapshots           快照列表\n")
+	b.WriteString("  /hz_rebuild <ID> <快照/镜像ID>  保留原 IP 重建\n\n")
 	b.WriteString("💡 上架通知里的按钮可以直接下单，比打字快。\n")
 	b.WriteString("💡 多账户的话先 /accounts 确认当前用的是哪个 —— ")
 	b.WriteString("三个大区的型号代码不一样，选错区永远抢不到。\n")

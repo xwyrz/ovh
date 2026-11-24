@@ -483,6 +483,11 @@ var BotCommands = []map[string]string{
 	{"command": "speed", "description": "抢购速度：发现库存到发出结账"},
 	{"command": "monitor", "description": "启动 / 停止监控（/monitor on|off）"},
 	{"command": "pauseall", "description": "暂停全部运行中的任务"},
+	{"command": "hz_status", "description": "Hetzner 状态"},
+	{"command": "hz_list", "description": "Hetzner 服务器列表与流量"},
+	{"command": "hz_traffic", "description": "Hetzner 流量详情（/hz_traffic 服务器ID）"},
+	{"command": "hz_snapshots", "description": "Hetzner 快照列表"},
+	{"command": "hz_rebuild", "description": "Hetzner 重建（/hz_rebuild 服务器ID 快照ID）"},
 }
 
 // RegisterCommands 把命令菜单推给 Telegram。

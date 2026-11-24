@@ -14,6 +14,7 @@ import (
 
 	"github.com/ovh-buy/server/internal/config"
 	"github.com/ovh-buy/server/internal/db"
+	"github.com/ovh-buy/server/internal/hetzner"
 	"github.com/ovh-buy/server/internal/logger"
 	"github.com/ovh-buy/server/internal/netfp"
 	"github.com/ovh-buy/server/internal/orderterm"
@@ -186,6 +187,9 @@ type State struct {
 
 	// onProxyError 代理故障回调,由 main 接到 proxyguard。
 	onProxyError func(accountID string, err error)
+
+	// Hetzner Hetzner 流量保护服务（main 里接线；为 nil 表示未启用）。
+	Hetzner *hetzner.Service
 }
 
 // NewState 构造应用状态。DB 必须已 Open。

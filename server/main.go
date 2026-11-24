@@ -25,9 +25,11 @@ import (
 	"github.com/ovh-buy/server/internal/config"
 	"github.com/ovh-buy/server/internal/db"
 	"github.com/ovh-buy/server/internal/handlers"
+	"github.com/ovh-buy/server/internal/hetzner"
 	"github.com/ovh-buy/server/internal/logger"
 	"github.com/ovh-buy/server/internal/monitor"
 	"github.com/ovh-buy/server/internal/netfp"
+	"github.com/ovh-buy/server/internal/notify"
 	"github.com/ovh-buy/server/internal/proxyguard"
 	"github.com/ovh-buy/server/internal/purchase"
 	"github.com/ovh-buy/server/internal/secret"
@@ -136,6 +138,13 @@ func main() {
 		state.Port = "19998"
 	}
 	state.LoadAll()
+
+	// Hetzner 流量保护服务：token 与设置走 SQLite kv + secret 加密（见 hetzner 包），
+	// 通知走现有 notify 通道（Telegram + Webhook）。未配 token 时不启动循环，
+	// 相关接口返回 400，不影响现有 OVH 监控行为。
+	state.Hetzner = hetzner.NewService(sqliteDB, lg, func(msg string) {
+		notify.Broadcast(state, msg, nil)
+	})
 
 	// 密钥对不上时凭据会全部解成空串。只静默显示"空账户"的话,用户看到的现象是
 	// "账户还在、但连不上 OVH",完全猜不到根因。这里大声说清楚,并给出可执行的下一步。
@@ -588,6 +597,39 @@ func main() {
 		api.POST("/ovh/contact-change-requests/:task_id/resend-email", handlers.ResendContactChangeEmail(state))
 		api.GET("/ovh/account/sub-accounts", handlers.GetSubAccounts(state))
 		api.GET("/ovh/account/bills", handlers.GetAccountBills(state))
+
+		// Hetzner 流量保护（/api/hetzner，走上面统一的 auth 中间件，不改鉴权逻辑）
+		hz := api.Group("/hetzner")
+		{
+			hz.GET("/status", handlers.GetHetznerStatus(state))
+			hz.GET("/servers", handlers.ListHetznerServers(state))
+			hz.GET("/servers/:id", handlers.GetHetznerServer(state))
+			hz.GET("/servers/:id/traffic", handlers.GetHetznerServerTraffic(state))
+			hz.POST("/servers", handlers.CreateHetznerServer(state))
+			hz.POST("/servers/:id/rebuild", handlers.RebuildHetznerServer(state))
+			hz.POST("/servers/:id/rebuild-full", handlers.RebuildFullHetznerServer(state))
+			hz.POST("/servers/:id/reboot", handlers.RebootHetznerServer(state))
+			hz.POST("/servers/:id/hard-reboot", handlers.HardRebootHetznerServer(state))
+			hz.POST("/servers/:id/reset-password", handlers.ResetHetznerPassword(state))
+			hz.PATCH("/servers/:id", handlers.RenameHetznerServer(state))
+			hz.DELETE("/servers/:id", handlers.DeleteHetznerServer(state))
+			hz.GET("/snapshots", handlers.ListHetznerSnapshots(state))
+			hz.POST("/snapshots", handlers.CreateHetznerSnapshot(state))
+			hz.DELETE("/snapshots/:id", handlers.DeleteHetznerSnapshot(state))
+			hz.PATCH("/snapshots/:id", handlers.RenameHetznerSnapshot(state))
+			hz.GET("/snapshots/:server_id/estimate", handlers.EstimateHetznerSnapshot(state))
+			hz.GET("/policies", handlers.ListHetznerPolicies(state))
+			hz.POST("/policies", handlers.CreateHetznerPolicy(state))
+			hz.DELETE("/policies/:server_id", handlers.DeleteHetznerPolicy(state))
+			hz.GET("/settings", handlers.GetHetznerSettings(state))
+			hz.PUT("/settings", handlers.PutHetznerSettings(state))
+			hz.POST("/check", handlers.CheckHetzner(state))
+			hz.GET("/qb/nodes", handlers.ListHetznerQBNodes(state))
+			hz.POST("/qb/nodes", handlers.CreateHetznerQBNode(state))
+			hz.DELETE("/qb/nodes/:server_id", handlers.DeleteHetznerQBNode(state))
+			hz.GET("/qb/status", handlers.GetHetznerQBStatus(state))
+			hz.GET("/actions/:id", handlers.GetHetznerAction(state))
+		}
 	}
 
 	// 前端静态文件（仅 `-tags ui` 构建时生效）
@@ -642,6 +684,10 @@ func main() {
 		if vps.Start(state) {
 			state.Logger.Info("自动启动 VPS 监控", "system")
 		}
+	}
+	// Hetzner 后台检查循环：配了 token 才启动，未配时静默不启动（接口会报 400）。
+	if state.Hetzner.StartLoop() {
+		state.Logger.Info("自动启动 Hetzner 流量检查", "system")
 	}
 
 	state.Logger.Info("Server started", "system")
@@ -814,6 +860,9 @@ func gracefulShutdown(srv *http.Server, sqlDB io.Closer, lg *logger.Logger, cons
 		monitorState.Stop()
 	}
 	vps.Stop(appStateForShutdown)
+	if appStateForShutdown != nil && appStateForShutdown.Hetzner != nil {
+		appStateForShutdown.Hetzner.StopLoop()
+	}
 	if appStateForShutdown != nil && appStateForShutdown.OrderPrewarm != nil {
 		appStateForShutdown.OrderPrewarm.Close()
 	}

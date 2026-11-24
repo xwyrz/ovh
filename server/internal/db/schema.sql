@@ -210,6 +210,59 @@ CREATE TABLE IF NOT EXISTS app_devices (
 );
 
 -- ===========================================
+-- hetzner_snapshots: Hetzner 快照记录（本地跟踪）
+-- API 侧快照以 Hetzner images 为准；这里只记“是谁创建的、对应哪台机器”，
+-- 便于费用估算用历史均值、以及删除后清理本地记录。
+-- ===========================================
+CREATE TABLE IF NOT EXISTS hetzner_snapshots (
+  id          INTEGER PRIMARY KEY,
+  server_id   INTEGER NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  size_gb     REAL NOT NULL DEFAULT 0,
+  created_at  TEXT NOT NULL DEFAULT '',
+  updated_at  TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_hetzner_snapshots_server ON hetzner_snapshots(server_id);
+
+-- ===========================================
+-- hetzner_policies: 自动重建策略（每台服务器一条）
+-- threshold 是流量占比阈值（0,1]，image_id 为重建用的镜像/快照（数字 id 或名字）
+-- ===========================================
+CREATE TABLE IF NOT EXISTS hetzner_policies (
+  server_id  INTEGER PRIMARY KEY,
+  enabled    INTEGER NOT NULL DEFAULT 1,
+  threshold  REAL NOT NULL DEFAULT 0.98,
+  image_id   TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL DEFAULT ''
+);
+
+-- ===========================================
+-- hetzner_daily_stats: 流量日统计
+-- 既是 /traffic?days=N 的数据源，也是已删除/重建服务器的流量归档
+-- （机器删了流量就清零，靠这张表把历史累计留下来）。
+-- ===========================================
+CREATE TABLE IF NOT EXISTS hetzner_daily_stats (
+  server_id INTEGER NOT NULL,
+  date      TEXT NOT NULL,
+  bytes     INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (server_id, date)
+);
+CREATE INDEX IF NOT EXISTS idx_hetzner_daily_stats_date ON hetzner_daily_stats(date);
+
+-- ===========================================
+-- hetzner_qb_nodes: qBittorrent 节点配置（每台服务器一个）
+-- password 用 secret 包加密后落盘，只做状态查询与流量展示，不做写入操作。
+-- ===========================================
+CREATE TABLE IF NOT EXISTS hetzner_qb_nodes (
+  server_id INTEGER PRIMARY KEY,
+  url       TEXT NOT NULL DEFAULT '',
+  username  TEXT NOT NULL DEFAULT '',
+  password  TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL DEFAULT ''
+);
+
+-- ===========================================
 -- app_pairing_codes: 一次性配对码(2 分钟有效)
 -- 兑换走单条 UPDATE 原子认领(used_at IS NULL AND expires_at > now),
 -- 并发重放只有一个连接能成功 —— 与 telegram_order_buttons 同一模式。
