@@ -248,6 +248,7 @@ OVH 凭据**不放 env**,通过前端 OvhCredsGate / 设置页"OVH 账户" tab �
 | 后端询价 | ✅ | `POST /api/servers/{planCode}/price`,走 OVH cart 真实询价 |
 | 已购服务器管理 | ✅ | 电源 / 重装(对齐官方全能力:OS 定制问题·SSH 密钥·安装后脚本·硬件 RAID arrays/热备·软 RAID 盘数·LVM 卷名·ZFS zpool 名·数据保留) / IPMI / BIOS / 启动模式 / 任务 / 维护工单 |
 | 已购 VPS 管理 | ✅ | 开关机 / 重装 / 快照 / 控制台 / 改密 / 反解 / 自动备份 |
+| **Hetzner 管理** | ✅ | Hetzner Cloud 服务器管理(见 [Hetzner](#hetzner)):流量监控 + 流量超限自动重建(保留原 IP)+ 快照管理 + Telegram 运维 + 可选 qBittorrent 联动,与 OVH 共用同一个二进制、界面和 Telegram 机器人 |
 | 网络与防护 | ✅ | 网卡 / OLA / MRTG 流量图 / DDoS 缓解 / 防火墙 / Backup FTP |
 | 合同期(engagement) | ✅ | 服务器与 VPS 双端,销毁类操作强制二次确认 |
 | 隐私模式 | ✅ | 一键打码所有 IP / MAC / 反向 DNS |
@@ -296,6 +297,15 @@ OVH 凭据**不放 env**,通过前端 OvhCredsGate / 设置页"OVH 账户" tab �
 - **维护**:维护记录 + 硬件更换工单(硬盘 / 内存 / 散热)+ 联系人变更(Token 邮件确认)
 - **高级**(9 个 sub-tab):Burst / 防火墙 / Backup FTP / Secondary DNS / 虚拟 MAC / vRack / 可订购升级 / 附加选项 / IP 规格
 - **隐私模式**:一键打码所有 IP / MAC / 反向 DNS 主机名
+
+### Hetzner
+- **功能**:Hetzner Cloud 服务器列表 / 状态 / 流量(每日趋势 + 月度累计)、创建 / 重建(保留原 IP)/ 从快照重建 / 删除(可选保留 IPv4/IPv6、删除前建快照)、快照创建 / 删除 / 重命名 / 费用估算、重启 / 硬重启 / 改名 / 重置密码(新密码只在接口响应里返回一次,页面弹窗展示,不进通知)。
+- **自动重建策略**:每台服务器可配流量阈值与重建镜像,流量达到阈值自动重建。默认 `SAFE_MODE=true`,只告警不自动执行危险动作;默认值:流量上限 20 TB/月、阈值 0.98、检查间隔 5 分钟。
+- **配置**:在 Hetzner 仪表盘的设置标签页填写 Token(只写不读,永不回显),走项目现有的 settings 存储 + secret 加密落盘,不进日志、不进仓库。没配 Token 时相关接口返回 `hetzner_token_missing`,页面提示去设置页填写。
+- **Telegram**:`/hz_status`、`/hz_list`、`/hz_traffic`、`/hz_snapshots`、`/hz_rebuild`,并进现有机器人,不另起第二个。
+- **qBittorrent 联动**:可选,默认关闭。每台服务器可配一个 qB 节点(URL/账号/密码,密码加密落盘),只做状态查询与流量展示,不做任何写入/删种操作。
+- **来源说明**:行为对照 liqiba/hzc 的功能与 Hetzner Cloud 公开 API 文档、用官方 Go SDK(hcloud-go v2.9.0)干净重写,未复制该仓库源码(该仓库无 license)。流量口径为出站流量,按 UTC 日/月累计;入站趋势暂未实现。
+- **未验证**:尚无真实 Token 联调,以下行为以 Hetzner API 文档为准、未实测:metrics 序列键名、创建时 412 的实际 code、快照 image id 形态、重建/删除时 Primary IP 的实际行为、重置密码响应形态。
 
 ### 其它
 - **账户管理**:余额 / 订单记录 / 退款记录 / 邮件历史(按当前账户切换)
