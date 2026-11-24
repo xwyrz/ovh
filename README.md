@@ -14,7 +14,7 @@ OVH 独立服务器 / VPS / Eco 系列**抢购 + 监控 + 管理**控制台。
 
 ## 下载
 
-去 [Releases](https://github.com/gokele/ovh/releases) 拿对应平台的二进制,解压即用,**不需要装 Go、Node 或 SQLite**:
+去 [Releases](https://github.com/xwyrz/ovh/releases) 拿对应平台的二进制,解压即用,**不需要装 Go、Node 或 SQLite**:
 
 | 平台 | 文件 |
 |---|---|
@@ -28,7 +28,7 @@ Linux 上记得 `chmod +x`。想自己编译见[部署方式](#部署方式)。
 也提供 Docker 镜像(`linux/amd64` + `linux/arm64`):
 
 ```bash
-docker pull ghcr.io/gokele/ovh:latest
+docker pull ghcr.io/xwyrz/ovh:latest
 ```
 
 ## 订单付款与停止抢购
@@ -123,10 +123,10 @@ docker run -d --name ovh-console \
   -v "$PWD/data:/data" \
   -e API_SECRET_KEY=换成你自己的随机串 \
   --restart unless-stopped \
-  ghcr.io/gokele/ovh:latest
+  ghcr.io/xwyrz/ovh:latest
 ```
 
-镜像由打 tag 时的 GitHub Action 构建并推到 `ghcr.io/gokele/ovh`,提供 `linux/amd64` 与 `linux/arm64`。
+镜像由打 tag 时的 GitHub Action 构建并推到 `ghcr.io/xwyrz/ovh`,提供 `linux/amd64` 与 `linux/arm64`。
 
 **数据全在 `/data` 这一个目录下**:SQLite 数据库、**数据库加密密钥**(`.env`)、缓存、日志。备份就备份这个目录。
 

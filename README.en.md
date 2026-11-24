@@ -12,7 +12,7 @@ Performance: [prebuilt carts, connection warming and dispatch measurements](docs
 
 ## Download
 
-Grab the binary for your platform from [Releases](https://github.com/gokele/ovh/releases), extract and run — **no Go, Node, or SQLite required**:
+Grab the binary for your platform from [Releases](https://github.com/xwyrz/ovh/releases), extract and run — **no Go, Node, or SQLite required**:
 
 | Platform | File |
 |---|---|
@@ -25,7 +25,7 @@ The frontend is embedded into the binary via `//go:embed`; once running, open `h
 A Docker image is also provided (`linux/amd64` + `linux/arm64`):
 
 ```bash
-docker pull ghcr.io/gokele/ovh:latest
+docker pull ghcr.io/xwyrz/ovh:latest
 ```
 
 ## Order payment and stopping purchases
@@ -120,10 +120,10 @@ docker run -d --name ovh-console \
   -v "$PWD/data:/data" \
   -e API_SECRET_KEY=your-own-random-string \
   --restart unless-stopped \
-  ghcr.io/gokele/ovh:latest
+  ghcr.io/xwyrz/ovh:latest
 ```
 
-The image is built by a GitHub Action on tag push and published to `ghcr.io/gokele/ovh`, for `linux/amd64` and `linux/arm64`.
+The image is built by a GitHub Action on tag push and published to `ghcr.io/xwyrz/ovh`, for `linux/amd64` and `linux/arm64`.
 
 **All data lives under the single `/data` directory**: the SQLite database, the **database encryption key** (`.env`), caches, and logs. Back up that directory and you have everything.
 
