@@ -14,6 +14,7 @@ import { watchPagesZh } from "./modules/watch-pages.zh";
 import { maintDialogsZh } from "./modules/maint-dialogs.zh";
 import { vpsDialogsZh } from "./modules/vps-dialogs.zh";
 import { commonLayerZh } from "./modules/common-layer.zh";
+import { hetznerZh } from "./modules/hetzner.zh";
 
 export const zh = {
   orderDuration: {
@@ -32,9 +33,12 @@ export const zh = {
       sniping: "抢购",
       monitor: "监控",
       instances: "实例",
+      hetzner: "Hetzner",
       system: "系统",
     },
     dashboard: "仪表盘",
+    hetzner: "Hetzner 仪表盘",
+    hetznerServers: "Hetzner 服务器",
     servers: "服务器列表",
     serversShort: "服务器",
     queue: "抢购队列",
@@ -91,4 +95,5 @@ export const zh = {
   ...maintDialogsZh,
   ...vpsDialogsZh,
   ...commonLayerZh,
+  ...hetznerZh,
 };

@@ -198,6 +198,22 @@ export const qk = {
     telegramPoller: () => ["settings", "telegram-poller"] as const,
   },
 
+  // Hetzner(流量保护面板)。后端未配 Token 时接口返回 4xx,调用方按
+  // "未配置"空态处理,不当成普通读取失败。
+  hetzner: {
+    status: () => ["hetzner", "status"] as const,
+    servers: () => ["hetzner", "servers"] as const,
+    server: (id: number) => ["hetzner", "server", id] as const,
+    traffic: (id: number, days: number) => ["hetzner", "traffic", id, days] as const,
+    snapshots: () => ["hetzner", "snapshots"] as const,
+    snapshotEstimate: (serverId: number) => ["hetzner", "snapshot-estimate", serverId] as const,
+    policies: () => ["hetzner", "policies"] as const,
+    settings: () => ["hetzner", "settings"] as const,
+    qbNodes: () => ["hetzner", "qb-nodes"] as const,
+    qbStatus: () => ["hetzner", "qb-status"] as const,
+    action: (id: string) => ["hetzner", "action", id] as const,
+  },
+
   // App 配对(设备令牌)
   app: {
     devices: () => ["app", "devices"] as const,

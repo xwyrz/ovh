@@ -17,6 +17,7 @@ import { watchPagesEn } from "./modules/watch-pages.en";
 import { maintDialogsEn } from "./modules/maint-dialogs.en";
 import { vpsDialogsEn } from "./modules/vps-dialogs.en";
 import { commonLayerEn } from "./modules/common-layer.en";
+import { hetznerEn } from "./modules/hetzner.en";
 
 export type LangPack = typeof zh;
 
@@ -36,9 +37,12 @@ const pack: LangPack = {
       sniping: "Sniping",
       monitor: "Monitoring",
       instances: "Instances",
+      hetzner: "Hetzner",
       system: "System",
     },
     dashboard: "Dashboard",
+    hetzner: "Hetzner Dashboard",
+    hetznerServers: "Hetzner Servers",
     servers: "Server Catalog",
     serversShort: "Servers",
     queue: "Order Queue",
@@ -95,6 +99,7 @@ const pack: LangPack = {
   ...maintDialogsEn,
   ...vpsDialogsEn,
   ...commonLayerEn,
+  ...hetznerEn,
 };
 
 export const en = pack;

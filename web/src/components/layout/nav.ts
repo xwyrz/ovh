@@ -1,5 +1,6 @@
 import {
   BarChart3, Server, ClipboardList, Bell, Cloud, Terminal, User, Clock, FileText, Settings,
+  Gauge, HardDrive,
   type LucideIcon,
 } from "lucide-react";
 
@@ -48,6 +49,13 @@ const NAV_GROUPS: NavGroup[] = [
       { to: "/server-control", icon: Terminal, label: "nav.serverControl" },
       { to: "/vps-control", icon: Cloud, label: "nav.vpsControl" },
       { to: "/account", icon: User, label: "nav.account" },
+    ],
+  },
+  {
+    title: "nav.group.hetzner",
+    items: [
+      { to: "/hetzner", icon: Gauge, label: "nav.hetzner" },
+      { to: "/hetzner-servers", icon: HardDrive, label: "nav.hetznerServers" },
     ],
   },
   {
