@@ -137,6 +137,8 @@ const pack: CommonLayerPack = {
       refreshStatusFailed: "Failed to refresh statuses",
       cleared: "Purchase history cleared",
       clearFailed: "Failed to clear",
+      failedCleared: "Deleted {{count}} failed record(s)",
+      failedClearFailed: "Failed to delete failed records",
     },
   },
   commons: {

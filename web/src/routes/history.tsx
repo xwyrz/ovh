@@ -33,6 +33,7 @@ import {
 import {
   useHistory,
   useClearHistory,
+  useClearFailedHistory,
   useRefreshOrderStatus,
   type PurchaseHistory,
 } from "@/hooks/use-history";
@@ -125,6 +126,7 @@ function HistoryPage() {
   const { t } = useTranslation();
   const list = useHistory();
   const clear = useClearHistory();
+  const clearFailed = useClearFailedHistory();
   const refreshStatus = useRefreshOrderStatus();
   const navigate = useNavigate();
   const buyAgain = (item: PurchaseHistory) =>
@@ -141,6 +143,7 @@ function HistoryPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "success" | "failed" | "uncertain">("all");
   const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmClearFailed, setConfirmClearFailed] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   // 每分钟刷新一次 now，让所有行的倒计时同步推进
@@ -208,6 +211,10 @@ function HistoryPage() {
             <Button variant="outline" size="sm" onClick={() => setConfirmClear(true)} disabled={items.length === 0}>
               <Trash2 className="w-4 h-4" />
               {t("history.clear")}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setConfirmClearFailed(true)} disabled={counts.failed === 0}>
+              <Trash2 className="w-4 h-4" />
+              {t("history.clearFailed")}
             </Button>
           </div>
         }
@@ -304,6 +311,21 @@ function HistoryPage() {
             <Button variant="outline" onClick={() => setConfirmClear(false)}>{t("history.cancel")}</Button>
             <Button variant="destructive" onClick={() => { clear.mutate(); setConfirmClear(false); }}>
               {t("history.confirmClear")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmClearFailed} onOpenChange={setConfirmClearFailed}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("history.clearFailedTitle")}</DialogTitle>
+            <DialogDescription>{t("history.clearFailedDesc", { count: counts.failed })}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmClearFailed(false)}>{t("history.cancel")}</Button>
+            <Button variant="destructive" onClick={() => { clearFailed.mutate(); setConfirmClearFailed(false); }}>
+              {t("history.confirmClearFailed")}
             </Button>
           </DialogFooter>
         </DialogContent>

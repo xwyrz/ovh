@@ -398,34 +398,70 @@ func RefreshOrderStatuses(state *app.State) gin.HandlerFunc {
 	}
 }
 
-// ClearPurchaseHistory DELETE /api/purchase-history
+// ClearPurchaseHistory DELETE /api/purchase-history[?status=failed|success|uncertain]
+//
+// 不带 status:清空全部(老行为);带 status:只删该状态的记录,其它状态原样保留。
+// 返回 deleted 表示实际删掉的条数,前端据此报"删了几条",而不是只说"已删除"。
 func ClearPurchaseHistory(state *app.State) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		status := c.Query("status")
+		if status != "" && status != "success" && status != "failed" && status != "uncertain" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status": "error",
+				"error":  "status 只能是 success、failed 或 uncertain",
+			})
+			return
+		}
 		// 落库失败必须报出去。上面的 ClearQueue 就是这么写的,只有这里
 		// 用 `_ =` 把错吞了 —— 表现是前端弹"已清空"、库里其实一条没删,
 		// 重启后整个购买历史原样复活。用户会以为是程序把删掉的记录找回来了。
 		state.HistoryMu.Lock()
 		backup := make([]types.PurchaseHistoryEntry, len(state.History))
 		copy(backup, state.History)
-		state.History = []types.PurchaseHistoryEntry{}
+		var deleted int
+		if status == "" {
+			deleted = len(state.History)
+			state.History = []types.PurchaseHistoryEntry{}
+		} else {
+			kept := make([]types.PurchaseHistoryEntry, 0, len(state.History))
+			for _, h := range state.History {
+				if h.Status == status {
+					deleted++
+					continue
+				}
+				kept = append(kept, h)
+			}
+			state.History = kept
+		}
 		state.HistoryMu.Unlock()
 
 		if err := state.SaveHistory(); err != nil {
 			// 内存回滚,让两边保持一致 —— 否则界面是空的、库里是满的,
 			// 下一次任何写历史的操作都会把整表按"空"覆盖回去。
-			// 回滚要保留这中间新落的记录(下单完成会 append),所以是拼接不是覆盖。
+			// 回滚要保留这中间新落的记录(下单完成会 append),所以只补备份里
+			// 没有的;直接 append(backup, 现有...) 会把删剩的记录复制一份。
 			state.HistoryMu.Lock()
-			state.History = append(backup, state.History...)
+			known := make(map[string]struct{}, len(backup))
+			for _, h := range backup {
+				known[h.ID] = struct{}{}
+			}
+			restored := append([]types.PurchaseHistoryEntry{}, backup...)
+			for _, h := range state.History {
+				if _, ok := known[h.ID]; !ok {
+					restored = append(restored, h)
+				}
+			}
+			state.History = restored
 			state.HistoryMu.Unlock()
 			state.Logger.Error("清空购买历史失败: "+err.Error(), "queue")
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status": "error",
-				"error":  "没能写进数据库，购买历史未被清空：" + err.Error(),
+				"error":  "没能写进数据库，购买历史未被删除：" + err.Error(),
 			})
 			return
 		}
 		state.Logger.Info("Purchase history cleared", "")
-		c.JSON(http.StatusOK, gin.H{"status": "success"})
+		c.JSON(http.StatusOK, gin.H{"status": "success", "deleted": deleted})
 	}
 }
 

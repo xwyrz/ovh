@@ -91,3 +91,17 @@ export function useClearHistory() {
     onError: (e: any) => toast.error(apiMessage(e) || i18n.t("hooksMsg.history.clearFailed")),
   });
 }
+
+/** 只删除失败的抢购历史，成功和待核对的记录保留 */
+export function useClearFailedHistory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () =>
+      (await api.delete<{ status: string; deleted: number }>("/purchase-history?status=failed")).data,
+    onSuccess: (d) => {
+      qc.invalidateQueries({ queryKey: qk.history() });
+      toast.success(i18n.t("hooksMsg.history.failedCleared", { count: d.deleted ?? 0 }));
+    },
+    onError: (e: any) => toast.error(apiMessage(e) || i18n.t("hooksMsg.history.failedClearFailed")),
+  });
+}

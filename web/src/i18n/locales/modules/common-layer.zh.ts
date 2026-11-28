@@ -131,6 +131,8 @@ export const commonLayerZh = {
       refreshStatusFailed: "刷新状态失败",
       cleared: "已清空购买历史",
       clearFailed: "清空失败",
+      failedCleared: "已删除 {{count}} 条失败记录",
+      failedClearFailed: "删除失败记录时出错",
     },
   },
   commons: {
