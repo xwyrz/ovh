@@ -105,3 +105,17 @@ export function useClearFailedHistory() {
     onError: (e: any) => toast.error(apiMessage(e) || i18n.t("hooksMsg.history.failedClearFailed")),
   });
 }
+
+/** 只删除已过付款期的抢购历史，未过期的订单保留 */
+export function useClearExpiredHistory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () =>
+      (await api.delete<{ status: string; deleted: number }>("/purchase-history?status=expired")).data,
+    onSuccess: (d) => {
+      qc.invalidateQueries({ queryKey: qk.history() });
+      toast.success(i18n.t("hooksMsg.history.expiredCleared", { count: d.deleted ?? 0 }));
+    },
+    onError: (e: any) => toast.error(apiMessage(e) || i18n.t("hooksMsg.history.expiredClearFailed")),
+  });
+}

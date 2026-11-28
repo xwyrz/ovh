@@ -133,6 +133,8 @@ export const commonLayerZh = {
       clearFailed: "清空失败",
       failedCleared: "已删除 {{count}} 条失败记录",
       failedClearFailed: "删除失败记录时出错",
+      expiredCleared: "已删除 {{count}} 条失效记录",
+      expiredClearFailed: "删除失效记录时出错",
     },
   },
   commons: {

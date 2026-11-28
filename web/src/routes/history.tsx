@@ -34,6 +34,7 @@ import {
   useHistory,
   useClearHistory,
   useClearFailedHistory,
+  useClearExpiredHistory,
   useRefreshOrderStatus,
   type PurchaseHistory,
 } from "@/hooks/use-history";
@@ -122,11 +123,25 @@ function getExpirationMs(item: PurchaseHistory): number {
   return new Date(item.purchaseTime).getTime() + ORDER_VALIDITY_MS;
 }
 
+/**
+ * 这条记录在页面上是不是显示"已过期":跟 HistoryRow / HistoryCard 里倒计时的
+ * 判定同一套 —— 成功、有订单号、未付款、未终态、且付款窗口已走完。
+ * 后端 ?status=expired 用的也是这套规则,两边算出来必须一致,
+ * 否则按钮上显示的条数和实际删掉的条数对不上。
+ */
+function isExpiredItem(item: PurchaseHistory, now: number): boolean {
+  if (item.status !== "success" || !item.orderId) return false;
+  const st = orderStatusView(item);
+  if (st.paid || st.closed) return false;
+  return getExpirationMs(item) - now <= 0;
+}
+
 function HistoryPage() {
   const { t } = useTranslation();
   const list = useHistory();
   const clear = useClearHistory();
   const clearFailed = useClearFailedHistory();
+  const clearExpired = useClearExpiredHistory();
   const refreshStatus = useRefreshOrderStatus();
   const navigate = useNavigate();
   const buyAgain = (item: PurchaseHistory) =>
@@ -144,6 +159,7 @@ function HistoryPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "success" | "failed" | "uncertain">("all");
   const [confirmClear, setConfirmClear] = useState(false);
   const [confirmClearFailed, setConfirmClearFailed] = useState(false);
+  const [confirmClearExpired, setConfirmClearExpired] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   // 每分钟刷新一次 now，让所有行的倒计时同步推进
@@ -167,6 +183,8 @@ function HistoryPage() {
     for (const i of items) if (i.status in c) c[i.status as "success" | "failed" | "uncertain"]++;
     return c;
   }, [items]);
+  // 已过付款期的条数(跟行里"已过期"小芯片同款判定),给"删除失效"按钮用
+  const expiredCount = useMemo(() => items.filter((i) => isExpiredItem(i, now)).length, [items, now]);
   const [tableRef, wide] = useContainerWide(HISTORY_TABLE_MIN_WIDTH);
   const toolbar = (
     <ListToolbar
@@ -215,6 +233,10 @@ function HistoryPage() {
             <Button variant="outline" size="sm" onClick={() => setConfirmClearFailed(true)} disabled={counts.failed === 0}>
               <Trash2 className="w-4 h-4" />
               {t("history.clearFailed")}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setConfirmClearExpired(true)} disabled={expiredCount === 0}>
+              <Trash2 className="w-4 h-4" />
+              {t("history.clearExpired")}
             </Button>
           </div>
         }
@@ -326,6 +348,21 @@ function HistoryPage() {
             <Button variant="outline" onClick={() => setConfirmClearFailed(false)}>{t("history.cancel")}</Button>
             <Button variant="destructive" onClick={() => { clearFailed.mutate(); setConfirmClearFailed(false); }}>
               {t("history.confirmClearFailed")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmClearExpired} onOpenChange={setConfirmClearExpired}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("history.clearExpiredTitle")}</DialogTitle>
+            <DialogDescription>{t("history.clearExpiredDesc", { count: expiredCount })}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmClearExpired(false)}>{t("history.cancel")}</Button>
+            <Button variant="destructive" onClick={() => { clearExpired.mutate(); setConfirmClearExpired(false); }}>
+              {t("history.confirmClearExpired")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -398,17 +398,19 @@ func RefreshOrderStatuses(state *app.State) gin.HandlerFunc {
 	}
 }
 
-// ClearPurchaseHistory DELETE /api/purchase-history[?status=failed|success|uncertain]
+// ClearPurchaseHistory DELETE /api/purchase-history[?status=failed|success|uncertain|expired]
 //
 // 不带 status:清空全部(老行为);带 status:只删该状态的记录,其它状态原样保留。
+// status=expired 是个算出来的状态:付款倒计时已走完、未付款、未终态的成功订单
+// (跟前端 history.tsx 里"已过期"小芯片的判定一致),不是库里存的状态值。
 // 返回 deleted 表示实际删掉的条数,前端据此报"删了几条",而不是只说"已删除"。
 func ClearPurchaseHistory(state *app.State) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		status := c.Query("status")
-		if status != "" && status != "success" && status != "failed" && status != "uncertain" {
+		if status != "" && status != "success" && status != "failed" && status != "uncertain" && status != "expired" {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status": "error",
-				"error":  "status 只能是 success、failed 或 uncertain",
+				"error":  "status 只能是 success、failed、uncertain 或 expired",
 			})
 			return
 		}
@@ -424,8 +426,11 @@ func ClearPurchaseHistory(state *app.State) gin.HandlerFunc {
 			state.History = []types.PurchaseHistoryEntry{}
 		} else {
 			kept := make([]types.PurchaseHistoryEntry, 0, len(state.History))
+			now := time.Now()
 			for _, h := range state.History {
-				if h.Status == status {
+				del := (status == "expired" && isExpiredHistory(h, now)) ||
+					(status != "expired" && h.Status == status)
+				if del {
 					deleted++
 					continue
 				}
@@ -463,6 +468,37 @@ func ClearPurchaseHistory(state *app.State) gin.HandlerFunc {
 		state.Logger.Info("Purchase history cleared", "")
 		c.JSON(http.StatusOK, gin.H{"status": "success", "deleted": deleted})
 	}
+}
+
+// isExpiredHistory 判断一条成功记录是不是"已过付款期"。
+// 跟前端 history.tsx 里"已过期"小芯片的判定保持一致,两边算出来不一样,
+// 按钮上显示的条数和实际删掉的条数就对不上:
+//
+//   - 只有 status=success、有订单号的记录才走付款倒计时;
+//   - 已付款( checking / delivering / delivered )或已终态
+//     ( cancelling / cancelled )的不算过期,哪怕时间过了;
+//   - 到期时间优先用 OVH 返回的 expirationTime,没有就按
+//     purchaseTime + 15 天算(前端 ORDER_VALIDITY_MS 同款);
+//   - 时间戳一律走 types.ParseTS:库里 NowISO(无时区)和 RFC3339 两种
+//     格式都有,直接 time.Parse(time.RFC3339) 解 NowISO 一定失败。
+//     解不出来的宁可不删,不要误删。
+func isExpiredHistory(h types.PurchaseHistoryEntry, now time.Time) bool {
+	if h.Status != "success" || h.OrderID == "" {
+		return false
+	}
+	switch h.OrderStatus {
+	case "checking", "delivering", "delivered", "cancelling", "cancelled":
+		return false
+	}
+	var exp time.Time
+	if t, ok := types.ParseTS(h.ExpirationTime); ok {
+		exp = t
+	} else if pt, ok := types.ParseTS(h.PurchaseTime); ok {
+		exp = pt.Add(15 * 24 * time.Hour)
+	} else {
+		return false
+	}
+	return !exp.After(now)
 }
 
 // queueAccounts 解析下单账户:兼容旧的单个 account_id,也接受多账户 account_ids。

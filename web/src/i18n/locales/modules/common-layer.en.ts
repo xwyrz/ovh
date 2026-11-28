@@ -139,6 +139,8 @@ const pack: CommonLayerPack = {
       clearFailed: "Failed to clear",
       failedCleared: "Deleted {{count}} failed record(s)",
       failedClearFailed: "Failed to delete failed records",
+      expiredCleared: "Deleted {{count}} expired record(s)",
+      expiredClearFailed: "Failed to delete expired records",
     },
   },
   commons: {
